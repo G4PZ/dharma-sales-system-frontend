@@ -8,9 +8,18 @@ const PUBLIC_PATHS = ['/login'];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Las llamadas a la API no deben ser bloqueadas por el proxy del frontend.
+  // La seguridad de estos endpoints ya la controla FastAPI.
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
   const hasSession = request.cookies.has(SESSION_COOKIE_NAME);
 
-  const isPublic = PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  const isPublic = PUBLIC_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`)
+  );
 
   // Con cookie activa intentando entrar a /login -> redirigir a /
   if (hasSession && isPublic) {
@@ -31,11 +40,13 @@ export default proxy;
 export const config = {
   matcher: [
     /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico, images, and public assets
+     * Excluye:
+     * - /api/*
+     * - _next/static
+     * - _next/image
+     * - favicon.ico
+     * - imágenes y archivos públicos
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api/|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
